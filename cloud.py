@@ -1,12 +1,10 @@
 import torch
-import warnings
-warnings.filterwarnings('ignore')
-
 
 from utils.utils import *
 from utils.monitor_server import *
 
-
+import warnings
+warnings.filterwarnings('ignore')
 
 
 
