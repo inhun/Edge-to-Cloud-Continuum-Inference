@@ -16,7 +16,7 @@ if __name__ == '__main__':
     device = 'cpu'
 
     if device == 'cuda' and torch.cuda.is_available() == False:
-        raise RuntimeError('cuda 사용할 수 없습니다.')
+        raise RuntimeError('cuda is not available')
     
     while True:
         socket_server = get_socket_server(ip, port)

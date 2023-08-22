@@ -141,7 +141,7 @@ def get_bandwidth():
     현재 네트워크 대역폭 가져오기
     :return: 네트워크 대역폭 MB/s
     """
-    print("正在获取网络带宽，wait...")
+    print("네트워크 대역폭을 확보하는 중입니다. 잠시 기다려 주세요....")
     spd = spt.Speedtest(secure=True)
     spd.get_best_server()
 
@@ -149,7 +149,7 @@ def get_bandwidth():
     upload = int(spd.upload() / 1024 / 1024)
 
     # print(f'현재 다운로드 속도는 다음과 같습니다: {str(download)} MB/s')
-    print(f'当前上传速度为：{str(upload)} MB/s')
+    print(f'현재 업로드 속도는 다음과 같습니다. {str(upload)} MB/s')
     return upload
 
 
