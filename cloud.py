@@ -1,6 +1,7 @@
 import torch
+import socket
 
-from utils.utils import *
+from utils import utils
 from utils.monitor_server import *
 
 import warnings
@@ -17,7 +18,7 @@ if __name__ == '__main__':
         raise RuntimeError('cuda is not available')
     
     while True:
-        socket_server = get_socket_server(ip, port)
+        socket_server = utils.get_socket_server(ip, port)
 
         monitor_server = MonitorServer(ip=ip)
         monitor_server.start()

@@ -30,7 +30,6 @@ class MonitorClient(Process):
         data = torch.rand((1, 3, 224, 224))
 
         try:
-            print(1)
             # 서버와 연결하여 사고가 발생하면 계속 시도하십시오.
             # 데이터 보내기
 

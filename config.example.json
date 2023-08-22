@@ -1,0 +1,13 @@
+{
+    "cloud": {
+        "external_ip" : "1.1.1.1",
+        "internal_ip" : "2.2.2.2",
+        "port" : 1,
+        "status_port" : 2
+    },
+    "edge": [
+        {"id" : 1, "external_ip": "3.3.3.3", "internal_ip": "4.4.4.4" ,"port" : 1, "status_port" : 2},
+        {"id" : 2, "external_ip": "5.5.5.5", "internal_ip": "6.6.6.6" ,"port" : 1, "status_port" : 2}
+    ]
+
+}
