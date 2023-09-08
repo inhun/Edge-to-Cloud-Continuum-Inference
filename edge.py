@@ -1,10 +1,9 @@
 import torch
 import multiprocessing
 import time
-import requests
 
 from utils.monitor_client import *
-from utils.config import load_config
+from utils.utils import *
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -16,8 +15,7 @@ warnings.filterwarnings('ignore')
 
 
 if __name__ == '__main__':
-    print(requests.get('http://ip.jsontest.com').json()['ip'])
-
+    internal_ip, external_ip = get_ip()
 
 
     ip, port = '163.180.117.39', 8090

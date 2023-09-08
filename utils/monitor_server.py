@@ -1,92 +1,152 @@
+import socket
+import time
+import pickle
+import platform
+import threading
+
 from multiprocessing import Process
 from apscheduler.schedulers.blocking import BlockingScheduler
-from utils import utils
 
-def get_bandwidth(conn):
-    """
-    하나의 신호 전송에 의한 대역폭 계산
-    :param conn: 연결된 연결
-    :return: 대역폭 MB/s
-    """
-    # 전송 지연 가져오기
-    _,latency = utils.get_data(conn)
-    # print(f"{latency} ms \n")
-    # 데이터 Byte의 바이트 수 계산 수신 데이터 크기는 [1,3,224,224]로 고정
-    # data_size = 1 * 3 * 224 * 224 * 8
+import torch 
 
-    # x = torch.rand((1, 3, 224, 224))
-    # print(len(pickle.dumps(x)))
-    # 결과 데이터 크기는 602541바이트입니다.
-    data_size = 602541
-
-    # 컴퓨팅 대역폭 MB/s
-    bandwidth = (data_size/1024/1024) / (latency / 1000)
-    print(f"monitor server get bandwidth : {bandwidth} MB/s ")
-    return bandwidth
 
 
 class MonitorServer(Process):
-    """
-        대역폭 모니터 서버의 작업 프로세스는 다음과 같습니다. ip는 들어오는 ip 포트는 기본적으로 9922입니다.
-        1. 대역폭 모니터 클라이언트가 보낸 데이터: 타이밍 메커니즘에 의해 켜지고 가끔씩 켜집니다.
-        2. 전송 시간(ms)에 필요한 전송 지연을 기록합니다.
-        3. 대역폭을 계산하고 속도를 MB/s로 변환
-        4. 대역폭 데이터를 클라이언트에 반환
-    """
-    def __init__(self, ip, port=9922, interval=10):
+    def __init__(self, ip, status_port=8091, interval=5):
         super(MonitorServer, self).__init__()
         self.ip = ip
-        self.port = port
+        self.status_port = status_port
         self.interval = interval
 
-        self.socket_server = utils.get_socket_server(self.ip, self.port)
-        self.conn, self.client = self.socket_server.accept()
+        self.socket_server = self.get_socket_server(self.status_port)
+        self.clients = []        
 
-        print(f'socket_server: {self.socket_server}')
-        print(f'conn: {self.conn}')
-        print(f'client: {self.client}')
+
+    def get_new_client(self):
+        while True:
+            conn, _ = self.socket_server.accept()
+            self.clients.append(conn)
+            print(self.clients)
+            print(f'new client {id(self.clients)}')
+            
+
+
+    def broadcast(self, clients, msg):
+        for i in clients:
+            message = pickle.dumps(msg)
+            i.sendall(message)
+
+
+    def get_socket_server(self, port):
+        socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        sys_platform = platform.platform().lower()
+        if 'windows' in sys_platform:
+            socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # windows
+        else:
+            socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1) # macos or linux
+
+
+        print(socket_server)
+
+        socket_server.bind(('0.0.0.0', port))
+        socket_server.listen(10)
+        
+        return socket_server
+
+
+
+    def get_data(self, conn):
+        data_len = pickle.loads(conn.recv(1024))
+        conn.sendall("yes len".encode())
+
+        # 데이터 수신 및 대기 시간 기록
+        sum_time = 0.0
+        data = [conn.recv(1)]
+        while True:
+            start_time = time.perf_counter()
+            packet = conn.recv(40960)
+            end_time = time.perf_counter()
+            transport_time = (end_time - start_time) * 1000  # 단위를 ms로 변환
+            sum_time += transport_time
+
+            data.append(packet)
+            if len(b"".join(data)) >= data_len:
+                break
+            # if len(packet) < 4096: break
+
+        parse_data = pickle.loads(b"".join(data))
+        conn.sendall("yes".encode())
+
+        return parse_data,sum_time
     
-    def __del__(self):
-        # close connection
-        utils.close_conn(self.conn)
-        utils.close_socket(self.socket_server)
+
+    def get_short_data(self, conn):
+        return pickle.loads(conn.recv(1024))
 
 
-    def start_server(self) -> None:
-        # 전송 대역폭 MB/s 가져오기
-        bandwidth = get_bandwidth(self.conn)
+    def send_short_data(self, conn, x, msg='msg', show=True):
+        send_x = pickle.dumps(x)
+        conn.sendall(send_x)
 
-        # 데이터 고착을 방지하기 위해 수신할 break 메시지 삽입
-        utils.get_short_data(self.conn)
-
-        # 획득한 대역폭을 클라이언트로 전송
-        utils.send_short_data(self.conn, bandwidth, "bandwidth", show=False)
+        if show:
+            print(f'short message, {msg} has been sent successfully')
 
 
+    def get_bandwidth(self, conn):
+        _, latency = self.get_data(conn)
 
-    def schedular(self):
-        # 타이밍 메커니즘을 사용하여 일정 기간 후 대역폭 모니터링
-        # 스케줄러 만들기
+        x = torch.rand((1, 3, 224, 224))
+        print(len(pickle.dumps(x)))
+
+        data_size = 602541
+
+        bandwidth = (data_size/1024/1024) / (latency / 1000)
+        print(f"monitor server get bandwidth : {bandwidth} MB/s ")
+        return bandwidth
+
+    
+
+    def start_server(self):
+        print(f'start server2 {id(self.clients)}')
+        clients = self.clients
+        for client in clients:
+            bandwidth = self.get_bandwidth(client)
+
+            self.get_short_data(client)
+            self.send_short_data(client, bandwidth, 'bandwidth', show=True)
+
+
+    def scheduler(self):
+        print(f'scheduler {id(self.clients)}')
         scheduler = BlockingScheduler(timezone='Asia/Seoul')
 
-        # 작업 추가
-        scheduler.add_job(self.start_server, 'interval', seconds=self.interval, id='send_server_status')
+        scheduler.add_job(self.start_server, 'interval', args=(), seconds=self.interval, id='send_server_status', )
         scheduler.start()
 
 
-    def run(self) -> None:
-        self.schedular()
-        # self.start_server()
+    def run(self):
+        thread = threading.Thread(target=self.get_new_client, args=(), daemon=True)
+        thread.start()
+         
+        self.scheduler()
 
 
 
-# if __name__ == '__main__':
-#     ip = "127.0.0.1"
-#     monitor_ser = MonitorServer(ip=ip)
-#
-#     monitor_ser.start()
-#     monitor_ser.join()
-#
-#
+if __name__ == '__main__':
+    while True:
+        ip = '0.0.0.0'
+
+        monitor_server = MonitorServer(ip=ip)
+        monitor_server.start()
+        monitor_server.join()
+        print('restart')
+
+
+
+
+
+
+
 
 
