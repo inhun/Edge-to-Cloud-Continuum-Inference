@@ -3,7 +3,7 @@ import multiprocessing
 import time
 
 from utils.monitor_client import *
-from utils.utils import *
+from utils.utils import load_config, get_ip
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -15,6 +15,11 @@ warnings.filterwarnings('ignore')
 
 
 if __name__ == '__main__':
+    config_path = 'config.json'
+    config = load_config(config_path)
+
+    
+
     internal_ip, external_ip = get_ip()
 
 

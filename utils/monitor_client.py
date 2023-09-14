@@ -9,7 +9,7 @@ import torch
 
 
 class MonitorClient(multiprocessing.Process):
-    def __init__(self, ip, bandwidth_value, port=8090, interval=5):
+    def __init__(self, ip, bandwidth_value, port=8090, interval=5, device='cpu'):
         super(MonitorClient, self).__init__()
         self.ip = ip
         self.bandwidth_value = bandwidth_value
@@ -40,7 +40,7 @@ class MonitorClient(multiprocessing.Process):
             print(f'get {resp_data}, {msg} has been sent successfully')
 
 
-    def send_short_data(self, conn, x, msg='msg', show=True):
+    def send_short_data(self, conn, x, msg='msg', show=True): 
         send_x = pickle.dumps(x)
         conn.sendall(send_x)
 
@@ -61,7 +61,7 @@ class MonitorClient(multiprocessing.Process):
 
             latency = self.get_short_data(self.conn)
 
-            if latency is not None:
+            if latency  is not None:
                 self.bandwidth_value.value = latency
 
             time.sleep(1)

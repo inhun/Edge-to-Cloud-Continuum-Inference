@@ -4,6 +4,8 @@ import pickle
 import platform
 import threading
 
+from utils.utils import *
+
 from multiprocessing import Process
 from apscheduler.schedulers.blocking import BlockingScheduler
 
@@ -19,7 +21,9 @@ class MonitorServer(Process):
         self.interval = interval
 
         self.socket_server = self.get_socket_server(self.status_port)
-        self.clients = []        
+        self.clients = []
+
+        self.gpu = torch.cuda.is_available()
 
 
     def get_new_client(self):
@@ -54,6 +58,14 @@ class MonitorServer(Process):
         
         return socket_server
 
+
+    def get_resource_info(self, gpu=False):
+        gpu_name = get_gpu_info()
+        if gpu_name != None:
+            used_mem, total_mem = get_gpu_memory()
+
+        else:
+            return None, None
 
 
     def get_data(self, conn):
@@ -106,6 +118,8 @@ class MonitorServer(Process):
         return bandwidth
 
     
+
+
 
     def start_server(self):
         print(f'start server2 {id(self.clients)}')
